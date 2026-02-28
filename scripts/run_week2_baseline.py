@@ -111,7 +111,7 @@ def make_case_svg(summary_rows: List[Dict], schema_rows: List[Dict], out_path: P
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Run Week2 baseline and generate report.")
     p.add_argument("--summaries-dir", default="summaries")
-    p.add_argument("--schema-spec", default="schema_spec/interaction_schema.json")
+    p.add_argument("--schema-spec", default="schemas/interaction_schema.json")
     p.add_argument("--out-dir", default="artifacts/week2")
     p.add_argument("--report", default="reports/week2_baseline.md")
     p.add_argument("--sample-frames", type=int, default=50)

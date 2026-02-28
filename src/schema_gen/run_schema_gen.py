@@ -224,7 +224,7 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Generate interaction schema from summaries.")
     p.add_argument("--input", required=True, help="Input summary JSONL file or directory.")
     p.add_argument("--output", required=True, help="Output schema JSONL file.")
-    p.add_argument("--schema-spec", default="schema_spec/interaction_schema.json")
+    p.add_argument("--schema-spec", default="schemas/interaction_schema.json")
     p.add_argument("--max-retries", type=int, default=2)
     p.add_argument("--sample-frames", type=int, default=0, help="If >0, sample this many frames.")
     p.add_argument("--seed", type=int, default=7)

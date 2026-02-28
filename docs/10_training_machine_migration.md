@@ -19,7 +19,7 @@ Copy these files first:
 - `data/processed/schema_labels.parquet`
 - `data/processed/object_vocab.json`
 - `data/processed/meta.json`
-- `schema/schema_min.json`
+- `schemas/schema_min.json`
 - `src/data/dataloader.py`
 - `src/data/build_schema_labels.py`
 
@@ -42,7 +42,7 @@ project/
       schema_labels.parquet
       object_vocab.json
       meta.json
-  schema/
+  schemas/
     schema_min.json
   src/
     data/

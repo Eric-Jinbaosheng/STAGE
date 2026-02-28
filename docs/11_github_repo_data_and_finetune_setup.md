@@ -23,8 +23,7 @@ Push these:
 
 - `src/`
 - `scripts/`
-- `schema/`
-- `schema_spec/`
+- `schemas/`
 - `configs/`
 - `docs/`
 - `README.md`

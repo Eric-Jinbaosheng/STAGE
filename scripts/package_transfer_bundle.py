@@ -10,7 +10,9 @@ from typing import List
 DEFAULT_ITEMS = [
     "README.md",
     ".gitignore",
-    "schema/schema_min.json",
+    "schemas/schema_min.json",
+    "schemas/interaction_schema.json",
+    "schemas/interaction_schema_template.json",
     "scripts/package_transfer_bundle.py",
     "scripts/train_finetune_baseline.py",
     "src/data/__init__.py",
