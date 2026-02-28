@@ -92,6 +92,7 @@ class UnifiedSchemaDataset(TorchDataset):  # type: ignore[misc]
         view_names: Optional[List[str]] = None,
         text_vocab_size: int = 2048,
         text_max_len: int = 16,
+        text_vocab_path: Optional[str] = None,
     ):
         self.index_df = pd.read_parquet(index_path)
         self.labels_df = pd.read_parquet(labels_path)
@@ -116,9 +117,9 @@ class UnifiedSchemaDataset(TorchDataset):  # type: ignore[misc]
 
         self._h5_cache: Dict[str, object] = {}
         self._dataset_len_cache: Dict[Tuple[str, str], int] = {}
-        self.text_vocab = self._build_text_vocab()
         self.pad_id = 0
         self.unk_id = 1
+        self.text_vocab = self._load_or_build_text_vocab(text_vocab_path)
 
     def __len__(self) -> int:
         return len(self.df)
@@ -139,6 +140,20 @@ class UnifiedSchemaDataset(TorchDataset):  # type: ignore[misc]
         for i, (tok, _) in enumerate(keep, start=2):
             vocab[tok] = i
         return vocab
+
+    def _load_or_build_text_vocab(self, text_vocab_path: Optional[str]) -> Dict[str, int]:
+        if text_vocab_path:
+            vocab_path = Path(text_vocab_path)
+            if vocab_path.exists():
+                payload = json.loads(vocab_path.read_text(encoding="utf-8"))
+                self.text_vocab_size = int(payload.get("text_vocab_size", self.text_vocab_size))
+                self.text_max_len = int(payload.get("text_max_len", self.text_max_len))
+                self.pad_id = int(payload.get("pad_id", 0))
+                self.unk_id = int(payload.get("unk_id", 1))
+                vocab = payload.get("vocab", {})
+                if isinstance(vocab, dict) and vocab:
+                    return {str(k): int(v) for k, v in vocab.items()}
+        return self._build_text_vocab()
 
     def encode_instruction(self, text: str) -> Tuple[np.ndarray, np.ndarray]:
         toks = tokenize_text(text)

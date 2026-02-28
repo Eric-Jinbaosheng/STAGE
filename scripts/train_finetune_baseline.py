@@ -20,6 +20,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--views", default="agentview_rgb")
     p.add_argument("--text-vocab-size", type=int, default=2048)
     p.add_argument("--text-max-len", type=int, default=16)
+    p.add_argument("--text-vocab-path", default="", help="Optional existing text_vocab.json to reuse.")
     p.add_argument("--text-embed-dim", type=int, default=64)
     p.add_argument("--text-hidden-dim", type=int, default=64)
     p.add_argument("--use-image", action="store_true", help="Load image tensors from obs_ptr when available.")
@@ -62,8 +63,10 @@ def main() -> None:
         view_names=view_names,
         text_vocab_size=args.text_vocab_size,
         text_max_len=args.text_max_len,
+        text_vocab_path=(args.text_vocab_path or None),
     )
-    ds.export_text_vocab(str(out_dir / "text_vocab.json"))
+    if not args.text_vocab_path:
+        ds.export_text_vocab(str(out_dir / "text_vocab.json"))
     loader = DataLoader(ds, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
     feature_dim = 5
@@ -173,8 +176,8 @@ def main() -> None:
                 "use_image": bool(args.use_image),
                 "frame_window": int(args.frame_window),
                 "views": view_names,
-                "text_vocab_size": int(args.text_vocab_size),
-                "text_max_len": int(args.text_max_len),
+                "text_vocab_size": int(ds.text_vocab_size),
+                "text_max_len": int(ds.text_max_len),
                 "text_embed_dim": int(args.text_embed_dim),
                 "text_hidden_dim": int(args.text_hidden_dim),
             }
@@ -195,7 +198,10 @@ def main() -> None:
 
     print(f"Wrote checkpoint: {out_dir / 'checkpoint.pt'}")
     print(f"Wrote metrics: {out_dir / 'metrics.json'}")
-    print(f"Wrote text vocab: {out_dir / 'text_vocab.json'}")
+    if not args.text_vocab_path:
+        print(f"Wrote text vocab: {out_dir / 'text_vocab.json'}")
+    else:
+        print(f"Reused text vocab: {args.text_vocab_path}")
 
 
 if __name__ == "__main__":

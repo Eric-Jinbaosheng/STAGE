@@ -49,6 +49,7 @@ Current behavior:
 - optional multi-frame window around the current frame
 - instruction text is tokenized into `input_ids` + `attention_mask`
 - the dataset can export a stable `text_vocab.json`
+- later runs can reuse the same vocab file with `--text-vocab-path`
 - a learnable `Embedding + GRU` builds the text feature
 - handover rows: no image exists yet, so the loader returns a zero image tensor and still uses numeric features
 
@@ -79,6 +80,17 @@ If you only want one head:
 ```powershell
 python scripts/train_finetune_baseline.py --task target_object
 python scripts/train_finetune_baseline.py --task phase
+```
+
+For reproducible later runs, reuse the exported vocab instead of rebuilding it:
+
+```powershell
+python scripts/train_finetune_baseline.py `
+  --index data/processed/libero_index.parquet `
+  --labels data/processed/schema_labels.parquet `
+  --out-dir artifacts/finetune_baseline_reuse_vocab `
+  --use-image `
+  --text-vocab-path artifacts/finetune_baseline/text_vocab.json
 ```
 
 ## Expected Output
