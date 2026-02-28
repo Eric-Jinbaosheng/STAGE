@@ -7,7 +7,7 @@ summaries/
 viz/
 transfer_bundle/
 .libero/
-data/
+/data/
 data/libero_raw/
 data/raw/
 data/proc/
