@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 artifacts/
+reports/
 third_party/
 summaries/
 viz/

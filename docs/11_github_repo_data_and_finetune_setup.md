@@ -27,7 +27,6 @@ Push these:
 - `schema_spec/`
 - `configs/`
 - `docs/`
-- `reports/` (optional but useful)
 - `README.md`
 - `.gitignore`
 
@@ -42,6 +41,7 @@ Do not push these:
 - `data/ood_suite/`
 - `summaries/`
 - `viz/`
+- `reports/`
 - `artifacts/`
 - `third_party/`
 

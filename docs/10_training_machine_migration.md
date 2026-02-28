@@ -22,8 +22,6 @@ Copy these files first:
 - `schema/schema_min.json`
 - `src/data/dataloader.py`
 - `src/data/build_schema_labels.py`
-- `reports/week1_sanity.md`
-- `reports/phase_template_summary.md`
 
 If you want local reproducibility of raw/index rebuilds, also copy:
 
