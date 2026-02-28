@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=nlpfp_infer1
-#SBATCH --partition=gpu
+#SBATCH --account=torch_pr_675_general
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2

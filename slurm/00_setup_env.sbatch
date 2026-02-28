@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=nlpfp_setup
-#SBATCH --partition=cpu
+#SBATCH --account=torch_pr_675_general
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
