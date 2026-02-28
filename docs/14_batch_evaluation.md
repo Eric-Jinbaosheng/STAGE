@@ -5,6 +5,7 @@ This script runs a trained baseline checkpoint on a batch of samples and reports
 - `target_object` accuracy
 - `phase` accuracy
 - confusion matrix for both heads
+- per-class `precision / recall / support`
 - a short prediction preview
 
 Script:
@@ -50,6 +51,8 @@ The output JSON includes:
 - `label_spaces`
 - `confusion.target_object`
 - `confusion.phase`
+- `per_class.target_object`
+- `per_class.phase`
 - `preview` with a few example predictions
 
 The confusion matrices are square integer matrices using the same class order listed in `label_spaces`.

@@ -22,6 +22,26 @@ def update_confusion(matrix, y_true, y_pred) -> None:
         matrix[int(t)][int(p)] += 1
 
 
+def per_class_stats(matrix, labels):
+    stats = []
+    n = len(labels)
+    for i in range(n):
+        tp = int(matrix[i][i])
+        support = int(sum(matrix[i]))
+        pred_total = int(sum(matrix[r][i] for r in range(n)))
+        precision = float(tp / pred_total) if pred_total > 0 else 0.0
+        recall = float(tp / support) if support > 0 else 0.0
+        stats.append(
+            {
+                "label": str(labels[i]),
+                "precision": precision,
+                "recall": recall,
+                "support": support,
+            }
+        )
+    return stats
+
+
 def main() -> None:
     try:
         import torch
@@ -198,6 +218,10 @@ def main() -> None:
         "confusion": {
             "target_object": obj_conf,
             "phase": phase_conf,
+        },
+        "per_class": {
+            "target_object": per_class_stats(obj_conf, ds.object_vocab),
+            "phase": per_class_stats(phase_conf, ds.phase_vocab),
         },
         "preview": preview,
     }
