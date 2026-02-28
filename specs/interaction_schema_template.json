@@ -1,0 +1,57 @@
+{
+  "episode_id": "string",
+  "timestamp": "string",
+  "phase": "offer|reach|align|contact|transfer|secure|retract|failure",
+  "entities": {
+    "human_hand_pose": {
+      "position_xyz": [0.0, 0.0, 0.0],
+      "orientation_xyzw": [0.0, 0.0, 0.0, 1.0]
+    },
+    "object_pose": {
+      "position_xyz": [0.0, 0.0, 0.0],
+      "orientation_xyzw": [0.0, 0.0, 0.0, 1.0]
+    },
+    "gripper_pose": {
+      "position_xyz": [0.0, 0.0, 0.0],
+      "orientation_xyzw": [0.0, 0.0, 0.0, 1.0]
+    }
+  },
+  "relations": {
+    "approaching_hand_object": 0.0,
+    "approaching_gripper_object": 0.0,
+    "aligned_gripper_object": 0.0,
+    "contact_possible": 0.0,
+    "contact_confirmed": 0.0,
+    "held_by_human": 0.0,
+    "held_by_robot": 0.0,
+    "human_released": 0.0,
+    "occluded_object": 0.0
+  },
+  "constraints": [
+    {
+      "name": "no_retract_before_secure",
+      "satisfied": true,
+      "confidence": 0.0
+    }
+  ],
+  "affordances": [
+    {
+      "action": "hold|backoff|prompt|viewpoint_change|realign|abort|grasp|pull",
+      "score": 0.0,
+      "rationale": "string"
+    }
+  ],
+  "uncertainty": {
+    "release_prob": 0.0,
+    "secure_prob": 0.0,
+    "conflict_score": 0.0,
+    "occlusion_prob": 0.0,
+    "phase_regress_prob": 0.0,
+    "unknown": false
+  },
+  "checker": {
+    "valid_schema": true,
+    "violations": [],
+    "repair_applied": []
+  }
+}

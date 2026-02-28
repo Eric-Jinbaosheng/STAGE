@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+artifacts/
+third_party/
+summaries/
+viz/
+transfer_bundle/
+.libero/
+data/
+data/libero_raw/
+data/raw/
+data/proc/
+data/processed/
+data/unified/
+data/ood/
+data/ood_suite/

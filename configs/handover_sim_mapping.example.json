@@ -1,0 +1,18 @@
+{
+  "timestamp": "timestamp",
+  "human_hand_pos": "human.hand.position",
+  "human_hand_quat": "human.hand.orientation",
+  "object_pos": "object.position",
+  "object_quat": "object.orientation",
+  "gripper_pos": "robot.gripper.position",
+  "gripper_quat": "robot.gripper.orientation",
+  "hand_object_distance": "signals.hand_object_distance",
+  "gripper_object_distance": "signals.gripper_object_distance",
+  "hand_velocity": "human.hand.velocity",
+  "gripper_velocity": "robot.gripper.velocity",
+  "object_velocity": "object.velocity",
+  "visibility_score": "vision.visibility_score",
+  "contact_signal_hand_object": "signals.contact_hand_object",
+  "contact_signal_gripper_object": "signals.contact_gripper_object",
+  "gripper_opening": "robot.gripper.opening"
+}
