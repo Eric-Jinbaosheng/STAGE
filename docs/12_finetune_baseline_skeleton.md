@@ -7,6 +7,9 @@ This is the first training-script skeleton for the training machine. It is inten
 - reads frozen processed files
 - loads `UnifiedSchemaDataset`
 - trains a small multi-head classifier
+- can load image windows from `obs_ptr` for LIBERO rows
+- can fuse multiple camera views
+- can tokenize the instruction and learn a text embedding
 - predicts:
   - `target_object`
   - `phase`
@@ -21,11 +24,10 @@ Current script:
 ## What It Is Not
 
 - not the final VLM fine-tuning pipeline
-- not image-based yet
 - not using a pretrained vision encoder yet
 - not doing distributed training
 
-Right now it is a training scaffold that proves the data/label path and optimization loop are wired correctly.
+Right now it is a training scaffold that proves the data/label path, image-window loading path, text path, and optimization loop are wired correctly.
 
 ## Why This Is Still Useful
 
@@ -37,7 +39,16 @@ Use this first on the training machine to verify:
 - loss decreases
 - checkpoints can be saved
 
-Once this works, replace the numeric feature encoder with the real observation encoder.
+Once this works, replace the current lightweight encoders with the real observation encoder.
+
+Current behavior:
+
+- LIBERO rows: read RGB frames from HDF5 via `obs_ptr`
+- optional multi-view: for example `agentview_rgb,eye_in_hand_rgb`
+- optional multi-frame window around the current frame
+- instruction text is tokenized into `input_ids` + `attention_mask`
+- a learnable `Embedding` layer with masked mean pooling builds the text feature
+- handover rows: no image exists yet, so the loader returns a zero image tensor and still uses numeric features
 
 ## Run
 
@@ -50,6 +61,13 @@ python scripts/train_finetune_baseline.py `
   --out-dir artifacts/finetune_baseline `
   --steps 200 `
   --batch-size 64 `
+  --use-image `
+  --image-size 64 `
+  --frame-window 3 `
+  --views agentview_rgb,eye_in_hand_rgb `
+  --text-vocab-size 2048 `
+  --text-max-len 16 `
+  --text-embed-dim 64 `
   --task multi
 ```
 
@@ -73,8 +91,9 @@ Output files:
 
 When you move to the real fine-tuning stage, replace:
 
-- the 5D numeric `x` feature input
-- the small MLP encoder
+- the current HDF5 frame-window loader
+- the current lightweight tokenizer + embedding
+- the small CNN + numeric/text fusion encoder
 
 with:
 
