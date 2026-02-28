@@ -9,13 +9,14 @@ This is the first training-script skeleton for the training machine. It is inten
 - trains a small multi-head classifier
 - can load image windows from `obs_ptr` for LIBERO rows
 - can fuse multiple camera views
-- can tokenize the instruction and learn a text embedding
+- can tokenize the instruction, export a stable vocab file, and learn a text encoder
 - predicts:
   - `target_object`
   - `phase`
 - writes:
   - `checkpoint.pt`
   - `metrics.json`
+  - `text_vocab.json`
 
 Current script:
 
@@ -47,7 +48,8 @@ Current behavior:
 - optional multi-view: for example `agentview_rgb,eye_in_hand_rgb`
 - optional multi-frame window around the current frame
 - instruction text is tokenized into `input_ids` + `attention_mask`
-- a learnable `Embedding` layer with masked mean pooling builds the text feature
+- the dataset can export a stable `text_vocab.json`
+- a learnable `Embedding + GRU` builds the text feature
 - handover rows: no image exists yet, so the loader returns a zero image tensor and still uses numeric features
 
 ## Run
@@ -68,6 +70,7 @@ python scripts/train_finetune_baseline.py `
   --text-vocab-size 2048 `
   --text-max-len 16 `
   --text-embed-dim 64 `
+  --text-hidden-dim 64 `
   --task multi
 ```
 
@@ -86,13 +89,14 @@ Output files:
 
 - `artifacts/finetune_baseline/checkpoint.pt`
 - `artifacts/finetune_baseline/metrics.json`
+- `artifacts/finetune_baseline/text_vocab.json`
 
 ## Next Replacement Point
 
 When you move to the real fine-tuning stage, replace:
 
 - the current HDF5 frame-window loader
-- the current lightweight tokenizer + embedding
+- the current lightweight tokenizer + GRU text encoder
 - the small CNN + numeric/text fusion encoder
 
 with:

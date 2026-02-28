@@ -21,6 +21,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--text-vocab-size", type=int, default=2048)
     p.add_argument("--text-max-len", type=int, default=16)
     p.add_argument("--text-embed-dim", type=int, default=64)
+    p.add_argument("--text-hidden-dim", type=int, default=64)
     p.add_argument("--use-image", action="store_true", help="Load image tensors from obs_ptr when available.")
     p.add_argument(
         "--task",
@@ -62,6 +63,7 @@ def main() -> None:
         text_vocab_size=args.text_vocab_size,
         text_max_len=args.text_max_len,
     )
+    ds.export_text_vocab(str(out_dir / "text_vocab.json"))
     loader = DataLoader(ds, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
     feature_dim = 5
@@ -89,7 +91,12 @@ def main() -> None:
                 self.image_encoder = None
                 img_dim = 0
             self.text_embedding = torch.nn.Embedding(ds.text_vocab_size, args.text_embed_dim, padding_idx=ds.pad_id)
-            fusion_in = feature_dim + args.text_embed_dim + img_dim
+            self.text_rnn = torch.nn.GRU(
+                input_size=args.text_embed_dim,
+                hidden_size=args.text_hidden_dim,
+                batch_first=True,
+            )
+            fusion_in = feature_dim + args.text_hidden_dim + img_dim
             self.fusion = torch.nn.Sequential(
                 torch.nn.Linear(fusion_in, hidden_dim),
                 torch.nn.ReLU(),
@@ -101,9 +108,15 @@ def main() -> None:
 
         def forward(self, x_num, x_img, input_ids, attention_mask):
             tok = self.text_embedding(input_ids)
-            mask = attention_mask.unsqueeze(-1)
-            denom = torch.clamp(mask.sum(dim=1), min=1.0)
-            text_feat = (tok * mask).sum(dim=1) / denom
+            lengths = torch.clamp(attention_mask.sum(dim=1).long(), min=1)
+            packed = torch.nn.utils.rnn.pack_padded_sequence(
+                tok,
+                lengths.cpu(),
+                batch_first=True,
+                enforce_sorted=False,
+            )
+            _, h_n = self.text_rnn(packed)
+            text_feat = h_n[-1]
             parts = [x_num, text_feat]
             if self.use_image:
                 parts.append(self.image_encoder(x_img))
@@ -163,6 +176,7 @@ def main() -> None:
                 "text_vocab_size": int(args.text_vocab_size),
                 "text_max_len": int(args.text_max_len),
                 "text_embed_dim": int(args.text_embed_dim),
+                "text_hidden_dim": int(args.text_hidden_dim),
             }
             history.append(record)
             print(record)
@@ -181,6 +195,7 @@ def main() -> None:
 
     print(f"Wrote checkpoint: {out_dir / 'checkpoint.pt'}")
     print(f"Wrote metrics: {out_dir / 'metrics.json'}")
+    print(f"Wrote text vocab: {out_dir / 'text_vocab.json'}")
 
 
 if __name__ == "__main__":

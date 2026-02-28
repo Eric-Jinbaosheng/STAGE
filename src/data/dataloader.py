@@ -149,6 +149,18 @@ class UnifiedSchemaDataset(TorchDataset):  # type: ignore[misc]
             mask[i] = 1.0
         return ids, mask
 
+    def export_text_vocab(self, path: str) -> None:
+        out = Path(path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "text_vocab_size": int(self.text_vocab_size),
+            "text_max_len": int(self.text_max_len),
+            "pad_id": int(self.pad_id),
+            "unk_id": int(self.unk_id),
+            "vocab": self.text_vocab,
+        }
+        out.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
+
     def _get_h5(self, file_path: str):
         if h5py is None:
             return None
