@@ -1,0 +1,56 @@
+#!/bin/bash
+#SBATCH --job-name=nlpfp_eval
+#SBATCH --partition=gpu
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=32G
+#SBATCH --gres=gpu:1
+#SBATCH --time=02:00:00
+#SBATCH --output=slurm-%x-%j.out
+
+set -euo pipefail
+
+WORKDIR="${WORKDIR:-$SLURM_SUBMIT_DIR}"
+VENV_DIR="${VENV_DIR:-$WORKDIR/.venv_torch}"
+CHECKPOINT="${CHECKPOINT:-artifacts/finetune_baseline/checkpoint.pt}"
+TEXT_VOCAB="${TEXT_VOCAB:-artifacts/finetune_baseline/text_vocab.json}"
+INDEX_PATH="${INDEX_PATH:-}"
+LABELS_PATH="${LABELS_PATH:-}"
+DATASET_FILTER="${DATASET_FILTER:-libero}"
+MAX_SAMPLES="${MAX_SAMPLES:-512}"
+BATCH_SIZE="${BATCH_SIZE:-32}"
+OUT_PATH="${OUT_PATH:-artifacts/batch_eval/result.json}"
+
+cd "$WORKDIR"
+source "$VENV_DIR/bin/activate"
+
+CMD=(
+  python scripts/run_batch_eval.py
+  --checkpoint "$CHECKPOINT"
+  --text-vocab "$TEXT_VOCAB"
+  --dataset "$DATASET_FILTER"
+  --max-samples "$MAX_SAMPLES"
+  --batch-size "$BATCH_SIZE"
+  --out "$OUT_PATH"
+)
+
+if [[ -n "$INDEX_PATH" ]]; then
+  CMD+=(--index "$INDEX_PATH")
+fi
+if [[ -n "$LABELS_PATH" ]]; then
+  CMD+=(--labels "$LABELS_PATH")
+fi
+
+printf 'Running command:\n%s\n' "${CMD[*]}"
+"${CMD[@]}"
+
+python - <<PY
+import json
+d = json.load(open("$OUT_PATH", "r", encoding="utf-8"))
+print("target_object_accuracy", d["metrics"]["target_object_accuracy"])
+print("phase_accuracy", d["metrics"]["phase_accuracy"])
+print("evaluated_samples", d["config"]["evaluated_samples"])
+PY
+
+echo "Batch evaluation finished."

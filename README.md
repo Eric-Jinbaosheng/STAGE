@@ -15,6 +15,7 @@ Week1-ready pipeline:
 - `docs/12_finetune_baseline_skeleton.md`
 - `docs/13_single_sample_inference.md`
 - `docs/14_batch_evaluation.md`
+- `docs/15_slurm_torch_training_workflow.md`
 - `docs/04_week1_pipeline_usage.md`
 - `docs/05_week2_schema_baseline.md`
 - `docs/06_week3_ood_injection.md`
