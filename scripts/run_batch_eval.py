@@ -2,6 +2,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Dict, List
 
 
 def parse_args() -> argparse.Namespace:
@@ -42,6 +43,13 @@ def per_class_stats(matrix, labels):
             }
         )
     return stats
+
+
+def encode_instruction_text(ds, text: str):
+    import torch
+
+    input_ids, attention_mask = ds.encode_instruction(text)
+    return torch.tensor(input_ids).unsqueeze(0).long(), torch.tensor(attention_mask).unsqueeze(0).float()
 
 
 def main() -> None:
@@ -155,9 +163,14 @@ def main() -> None:
     obj_correct = 0
     phase_correct = 0
     total = 0
+    blank_changed = 0
+    blank_total = 0
+    swap_flip_correct = 0
+    swap_total = 0
     obj_conf = [[0 for _ in range(object_classes)] for _ in range(object_classes)]
     phase_conf = [[0 for _ in range(phase_classes)] for _ in range(phase_classes)]
     preview = []
+    qual_cases: List[Dict] = []
 
     with torch.no_grad():
         base_offset = 0
@@ -180,24 +193,79 @@ def main() -> None:
             update_confusion(obj_conf, y_obj.tolist(), pred_obj.tolist())
             update_confusion(phase_conf, y_phase.tolist(), pred_phase.tolist())
 
-            if len(preview) < 5:
+            if len(preview) < 5 or len(qual_cases) < 30:
                 probs_obj = torch.softmax(logits_obj, dim=1)
                 probs_phase = torch.softmax(logits_phase, dim=1)
-                for j in range(min(batch_n, 5 - len(preview))):
+                for j in range(batch_n):
                     global_idx = selected_indices[base_offset + j]
                     row = ds.df.iloc[global_idx]
-                    preview.append(
-                        {
-                            "episode_id": str(row.get("episode_id", "")),
-                            "frame_id": int(row.get("frame_id", 0)),
-                            "pred_target_object": ds.object_vocab[int(pred_obj[j].item())],
-                            "pred_phase": ds.phase_vocab[int(pred_phase[j].item())],
-                            "true_target_object": ds.object_vocab[int(y_obj[j].item())],
-                            "true_phase": ds.phase_vocab[int(y_phase[j].item())],
-                            "target_object_score": float(probs_obj[j, int(pred_obj[j].item())].item()),
-                            "phase_score": float(probs_phase[j, int(pred_phase[j].item())].item()),
-                        }
-                    )
+                    orig_pred_obj = ds.object_vocab[int(pred_obj[j].item())]
+                    instr_blank = str(row.get("instr_blank", ""))
+                    instr_swap = str(row.get("instr_swap", ""))
+                    swap_valid = bool(row.get("swap_valid", False))
+
+                    x_num_one = batch["x"][j].unsqueeze(0).float()
+                    x_img_one = batch["image"][j].unsqueeze(0).float()
+
+                    blank_ids, blank_mask = encode_instruction_text(ds, instr_blank)
+                    blank_logits_obj, _ = model(x_num_one, x_img_one, blank_ids, blank_mask)
+                    blank_pred_obj = ds.object_vocab[int(torch.argmax(blank_logits_obj, dim=1)[0].item())]
+                    blank_total += 1
+                    if blank_pred_obj != orig_pred_obj:
+                        blank_changed += 1
+
+                    swap_pred_obj = ""
+                    if swap_valid:
+                        swap_ids, swap_mask = encode_instruction_text(ds, instr_swap)
+                        swap_logits_obj, _ = model(x_num_one, x_img_one, swap_ids, swap_mask)
+                        swap_pred_obj = ds.object_vocab[int(torch.argmax(swap_logits_obj, dim=1)[0].item())]
+                        swap_total += 1
+                        swap_meta_raw = str(row.get("swap_meta", "{}"))
+                        try:
+                            swap_meta = json.loads(swap_meta_raw)
+                        except Exception:
+                            swap_meta = {}
+                        src_obj = str(swap_meta.get("src", ""))
+                        tgt_obj = str(swap_meta.get("tgt", ""))
+                        if orig_pred_obj == src_obj and swap_pred_obj == tgt_obj:
+                            swap_flip_correct += 1
+
+                    if len(preview) < 5:
+                        preview.append(
+                            {
+                                "episode_id": str(row.get("episode_id", "")),
+                                "frame_id": int(row.get("frame_id", 0)),
+                                "pred_target_object": orig_pred_obj,
+                                "pred_phase": ds.phase_vocab[int(pred_phase[j].item())],
+                                "true_target_object": ds.object_vocab[int(y_obj[j].item())],
+                                "true_phase": ds.phase_vocab[int(y_phase[j].item())],
+                                "target_object_score": float(probs_obj[j, int(pred_obj[j].item())].item()),
+                                "phase_score": float(probs_phase[j, int(pred_phase[j].item())].item()),
+                            }
+                        )
+
+                    if len(qual_cases) < 30:
+                        try:
+                            swap_meta = json.loads(str(row.get("swap_meta", "{}")))
+                        except Exception:
+                            swap_meta = {}
+                        qual_cases.append(
+                            {
+                                "episode_id": str(row.get("episode_id", "")),
+                                "frame_id": int(row.get("frame_id", 0)),
+                                "instruction": str(row.get("instruction", "")),
+                                "instr_blank": instr_blank,
+                                "instr_swap": instr_swap,
+                                "swap_valid": swap_valid,
+                                "gt_target_object": str(row.get("target_object", "")),
+                                "gt_phase": str(row.get("phase", "")),
+                                "pred_target_object": orig_pred_obj,
+                                "pred_phase": ds.phase_vocab[int(pred_phase[j].item())],
+                                "pred_target_object_blank": blank_pred_obj,
+                                "pred_target_object_swap": swap_pred_obj,
+                                "swap_meta": swap_meta,
+                            }
+                        )
             base_offset += batch_n
 
     result = {
@@ -216,6 +284,8 @@ def main() -> None:
         "metrics": {
             "target_object_accuracy": float(obj_correct / max(total, 1)),
             "phase_accuracy": float(phase_correct / max(total, 1)),
+            "schema_sensitivity_score_target": float(blank_changed / max(blank_total, 1)),
+            "target_flip_rate_swap": float(swap_flip_correct / max(swap_total, 1)),
         },
         "label_spaces": {
             "target_object": ds.object_vocab,
@@ -230,6 +300,13 @@ def main() -> None:
             "phase": per_class_stats(phase_conf, ds.phase_vocab),
         },
         "preview": preview,
+        "language_sensitivity": {
+            "blank_total": int(blank_total),
+            "blank_changed": int(blank_changed),
+            "swap_total": int(swap_total),
+            "swap_flip_correct": int(swap_flip_correct),
+        },
+        "qual_cases": qual_cases,
     }
 
     payload = json.dumps(result, indent=2, ensure_ascii=True)
