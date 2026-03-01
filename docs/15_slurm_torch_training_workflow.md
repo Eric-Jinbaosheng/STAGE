@@ -31,21 +31,37 @@ sbatch slurm/00_setup_env.sbatch
 Useful overrides:
 
 ```bash
-sbatch --export=ALL,WORKDIR=/path/to/NLP_Final_Project,VENV_DIR=/path/to/NLP_Final_Project/.venv_torch,USE_CUDA_MODULE=1,PYTHON_MODULE=python/3.10,CUDA_MODULE=cuda/12.1 slurm/00_setup_env.sbatch
+sbatch --export=ALL,WORKDIR=/path/to/NLP_Final_Project,CONDA_ENV_DIR=/scratch/$USER/NLP_Final_Project/.conda_torch,PYTHON_MODULE=anaconda3/2025.06,USE_CUDA_MODULE=0 slurm/00_setup_env.sbatch
 ```
 
-This creates the venv and installs:
+This creates a conda environment on scratch and installs:
 
 - `torch`
 - `torchvision`
-- `torchaudio`
 - `numpy`
 - `pandas`
 - `pyarrow`
 - `h5py`
+- `huggingface_hub`
+
+By default it does not install:
+
+- `torchaudio`
 - `gymnasium`
 - `robosuite`
-- `huggingface_hub`
+
+If you want the extra simulation dependencies too:
+
+```bash
+sbatch --export=ALL,INSTALL_EXTRA_SIM_DEPS=1 slurm/00_setup_env.sbatch
+```
+
+This script is already adapted for the current `torch` cluster behavior:
+
+- uses `anaconda3/2025.06`
+- forces Python 3.11 inside the conda env
+- moves conda and pip writes to `/scratch`
+- avoids the home-directory quota issue
 
 ## 2. Pull Data
 
@@ -175,5 +191,6 @@ Run in this order:
   - `PYTHON_MODULE`
   - `CUDA_MODULE`
 - If CUDA version differs, change `TORCH_INDEX_URL` in `slurm/00_setup_env.sbatch`
+- `cuda_available=False` on the login node can still be normal; verify GPU access on a GPU compute job
 
 These scripts are designed to be editable templates, not hard-coded to one cluster.
