@@ -126,32 +126,30 @@ if __name__ == "__main__":
 
     from data.collator import SchemaTextSFTCollator
     from data.dataset_sft import SchemaSFTDataset
-    from model.load_vlm import (
-        LoRAConfig,
-        VLMConfig,
-        load_vlm_and_processor,
-        print_trainable_parameter_summary,
-    )
+    from model.load_vlm import load_vlm_and_processor, print_trainable_parameter_summary
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    vlm_cfg = VLMConfig(
-        model_name=args.model_name,
-        trust_remote_code=args.trust_remote_code,
-        torch_dtype=pick_dtype(args),
-        device_map=(args.device_map or None),
-        use_flash_attention_2=args.flash_attn_2,
-        load_in_4bit=args.load_in_4bit,
-        load_in_8bit=args.load_in_8bit,
+    lora_target_modules = [x.strip() for x in args.lora_target_modules.split(",") if x.strip()]
+    model, processor = load_vlm_and_processor(
+        model_name_or_path=args.model_name,
+        trust_remote_code=bool(args.trust_remote_code),
+        use_lora=True,
+        lora_r=args.lora_r,
+        lora_alpha=args.lora_alpha,
+        lora_dropout=args.lora_dropout,
+        lora_target_modules=lora_target_modules,
+        torch_dtype=(
+            "bfloat16" if args.bf16 else
+            "float16" if args.fp16 else
+            "auto"
+        ),
+        device_map=(args.device_map or "auto"),
+        use_flash_attention_2=bool(args.flash_attn_2),
+        load_in_4bit=bool(args.load_in_4bit),
+        load_in_8bit=bool(args.load_in_8bit),
     )
-    lora_cfg = LoRAConfig(
-        r=args.lora_r,
-        alpha=args.lora_alpha,
-        dropout=args.lora_dropout,
-        target_modules=[x.strip() for x in args.lora_target_modules.split(",") if x.strip()],
-    )
-    model, processor = load_vlm_and_processor(vlm_cfg, lora_cfg)
 
     if args.gradient_checkpointing and hasattr(model, "gradient_checkpointing_enable"):
         model.gradient_checkpointing_enable()
@@ -224,7 +222,12 @@ if __name__ == "__main__":
         "warmup_ratio": args.warmup_ratio,
         "max_steps": args.max_steps,
         "seed": args.seed,
-        "lora": lora_cfg.to_peft_kwargs(),
+        "lora": {
+            "r": args.lora_r,
+            "alpha": args.lora_alpha,
+            "dropout": args.lora_dropout,
+            "target_modules": lora_target_modules,
+        },
         "vlm": {
             "trust_remote_code": args.trust_remote_code,
             "device_map": args.device_map,

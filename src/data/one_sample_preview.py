@@ -27,6 +27,7 @@ def main() -> None:
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
 
+    from src.data.collator import render_multimodal_prompt
     from src.data.dataset_sft import SchemaSFTDataset
     from src.model.load_vlm import load_vlm_and_processor, print_trainable_parameter_summary
 
@@ -51,8 +52,13 @@ def main() -> None:
     )
     summary = print_trainable_parameter_summary(model)
 
+    rendered_prompt = render_multimodal_prompt(
+        processor,
+        sample["prompt_text"],
+        add_generation_prompt=True,
+    )
     inputs = processor(
-        text=[sample["prompt_text"]],
+        text=[rendered_prompt],
         images=[sample["image"]],
         return_tensors="pt",
         padding=True,
@@ -64,6 +70,7 @@ def main() -> None:
         "sample_id": sample["sample_id"],
         "instruction": sample["instruction"],
         "prompt_text": sample["prompt_text"],
+        "rendered_prompt_text": rendered_prompt,
         "target_schema_text": sample["target_schema_text"],
         "processor_shapes": shape_summary,
         "model_param_summary": summary,

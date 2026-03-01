@@ -46,8 +46,15 @@ def normalize_tri(value: Any) -> str:
 
 
 def generate_schema_text(model, processor, sample: dict, max_length: int, max_new_tokens: int, device: torch.device) -> str:
+    from data.collator import render_multimodal_prompt
+
+    rendered_prompt = render_multimodal_prompt(
+        processor,
+        sample["prompt_text"],
+        add_generation_prompt=True,
+    )
     encoded = processor(
-        text=[sample["prompt_text"]],
+        text=[rendered_prompt],
         images=[sample["image"].numpy()],
         return_tensors="pt",
         padding=True,
@@ -97,11 +104,16 @@ if __name__ == "__main__":
     from model.load_vlm import VLMConfig, load_processor, load_vlm_model
 
     vlm_cfg = VLMConfig(
-        model_name=args.model_name,
+        model_name_or_path=args.model_name,
         trust_remote_code=args.trust_remote_code,
-        torch_dtype=pick_dtype(args),
+        torch_dtype=(
+            "bfloat16" if args.bf16 else
+            "float16" if args.fp16 else
+            "auto"
+        ),
+        device_map="auto",
     )
-    processor = load_processor(vlm_cfg)
+    processor = load_processor(args.model_name, trust_remote_code=args.trust_remote_code)
     base_model = load_vlm_model(vlm_cfg)
     model = PeftModel.from_pretrained(base_model, args.adapter_path)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

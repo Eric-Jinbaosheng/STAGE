@@ -6,6 +6,25 @@ from typing import Any, Dict, List
 import torch
 
 
+def render_multimodal_prompt(processor: Any, prompt_text: str, add_generation_prompt: bool = True) -> str:
+    if hasattr(processor, "apply_chat_template"):
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image"},
+                    {"type": "text", "text": prompt_text},
+                ],
+            }
+        ]
+        return processor.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=add_generation_prompt,
+        )
+    return prompt_text
+
+
 @dataclass
 class SchemaTextSFTCollator:
     processor: Any
@@ -24,7 +43,14 @@ class SchemaTextSFTCollator:
         )
 
     def __call__(self, batch: List[Dict[str, Any]]) -> Dict[str, Any]:
-        prompts = [str(x["prompt_text"]) for x in batch]
+        prompts = [
+            render_multimodal_prompt(
+                self.processor,
+                str(x["prompt_text"]),
+                add_generation_prompt=True,
+            )
+            for x in batch
+        ]
         targets = [str(x["target_schema_text"]) for x in batch]
         full_texts = [p + t for p, t in zip(prompts, targets)]
         images = [x["image"] for x in batch]
