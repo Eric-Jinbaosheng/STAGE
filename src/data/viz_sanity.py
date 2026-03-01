@@ -44,6 +44,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--libero-index", default="data/processed/libero_index.parquet")
     p.add_argument("--handover-index", default="data/processed/handover_index.parquet")
     p.add_argument("--schema-labels", default="data/processed/schema_labels.parquet")
+    p.add_argument("--instr-wrong", default="data/processed/instr_wrong.parquet")
     p.add_argument("--report", default="reports/week1_sanity.md")
     p.add_argument("--out-dir", default="reports/week1_assets")
     return p.parse_args()
@@ -61,7 +62,9 @@ def main() -> None:
     libero_exists = Path(args.libero_index).exists()
     hand_exists = Path(args.handover_index).exists()
     labels_exists = Path(args.schema_labels).exists()
+    instr_wrong_exists = Path(args.instr_wrong).exists()
     labels = pd.read_parquet(args.schema_labels) if labels_exists else pd.DataFrame()
+    instr_wrong = pd.read_parquet(args.instr_wrong) if instr_wrong_exists else pd.DataFrame()
 
     if libero_exists:
         li = pd.read_parquet(args.libero_index)
@@ -76,11 +79,49 @@ def main() -> None:
                 if len(labels) > 0:
                     lsub = labels[(labels["dataset"] == "libero") & (labels["episode_id"] == ep)]
                     if len(lsub) > 0:
+                        target = str(lsub.iloc[0].get("target_object", "UNK"))
+                        lines.append(f"  - target_object: `{target}`")
                         x = lsub["frame_id"].astype(float).tolist()
                         phase_num = [hash(p) % 7 for p in lsub["phase"].tolist()]
                         path = out_dir / f"libero_phase_{ep}.svg"
                         _to_svg(x, {"phase_hash": phase_num}, path, f"LIBERO phase proxy: {ep}")
                         lines.append(f"  - phase plot: `{path.as_posix()}`")
+                if len(instr_wrong) > 0:
+                    isub = instr_wrong[(instr_wrong["dataset"] == "libero") & (instr_wrong["episode_id"] == ep)].sort_values("frame_id")
+                    if len(isub) > 0:
+                        first = isub.iloc[0]
+                        lines.append(f"  - instr_blank: `{str(first.get('instr_blank', ''))}`")
+                        lines.append(f"  - instr_shuffle: `{str(first.get('instr_shuffle', ''))}`")
+                        lines.append(f"  - instr_swap: `{str(first.get('instr_swap', ''))}`")
+                        lines.append(f"  - swap_valid: `{bool(first.get('swap_valid', False))}`")
+                        swap_valid_rate = float(isub["swap_valid"].astype(bool).mean()) if "swap_valid" in isub.columns else 0.0
+                        lines.append(f"  - swap_valid_rate: `{swap_valid_rate:.3f}`")
+            if len(labels) > 0:
+                lines.append("")
+                lines.append("## LIBERO Sample Rows")
+                sample_rows = li.head(20).copy()
+                if "sample_id" not in sample_rows.columns:
+                    sample_rows["sample_id"] = sample_rows["episode_id"].astype(str) + ":" + sample_rows["frame_id"].astype(int).astype(str)
+                if len(labels) > 0:
+                    sample_rows = sample_rows.merge(
+                        labels[["dataset", "episode_id", "frame_id", "target_object", "phase"]],
+                        on=["dataset", "episode_id", "frame_id"],
+                        how="left",
+                    )
+                if len(instr_wrong) > 0:
+                    sample_rows = sample_rows.merge(
+                        instr_wrong[["sample_id", "instr_swap", "swap_valid"]],
+                        on="sample_id",
+                        how="left",
+                    )
+                for _, row in sample_rows.iterrows():
+                    lines.append(f"- `{row['sample_id']}`")
+                    lines.append(f"  - instruction: `{str(row.get('instruction', ''))}`")
+                    lines.append(f"  - target_object: `{str(row.get('target_object', 'UNK'))}`")
+                    lines.append(f"  - phase: `{str(row.get('phase', 'UNK'))}`")
+                    if "instr_swap" in sample_rows.columns:
+                        lines.append(f"  - instr_swap: `{str(row.get('instr_swap', ''))}`")
+                        lines.append(f"  - swap_valid: `{bool(row.get('swap_valid', False))}`")
         else:
             lines.append("- LIBERO index is empty (no raw files were found).")
     else:
@@ -114,6 +155,11 @@ def main() -> None:
         lines.append(f"- Schema labels rows: {len(labels)}")
         if len(labels) > 0:
             lines.append(f"- target_object vocab in labels: {sorted(labels['target_object'].drop_duplicates().tolist())}")
+    if instr_wrong_exists:
+        lines.append("")
+        lines.append(f"- instr_wrong rows: {len(instr_wrong)}")
+        if len(instr_wrong) > 0 and "swap_valid" in instr_wrong.columns:
+            lines.append(f"- global swap_valid rate: {float(instr_wrong['swap_valid'].astype(bool).mean()):.3f}")
 
     report_path.write_text("\n".join(lines), encoding="utf-8")
     print(f"Wrote {report_path}")
@@ -121,4 +167,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
