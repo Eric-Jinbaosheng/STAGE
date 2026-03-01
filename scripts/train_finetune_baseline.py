@@ -23,6 +23,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--text-vocab-path", default="", help="Optional existing text_vocab.json to reuse.")
     p.add_argument("--text-embed-dim", type=int, default=64)
     p.add_argument("--text-hidden-dim", type=int, default=64)
+    p.add_argument("--split-path", default="", help="Optional episode split JSON.")
+    p.add_argument("--split", default="", choices=["", "train", "val", "test"], help="Optional split name.")
     p.add_argument("--use-image", action="store_true", help="Load image tensors from obs_ptr when available.")
     p.add_argument(
         "--task",
@@ -64,6 +66,8 @@ def main() -> None:
         text_vocab_size=args.text_vocab_size,
         text_max_len=args.text_max_len,
         text_vocab_path=(args.text_vocab_path or None),
+        split_path=(args.split_path or None),
+        split_name=(args.split or None),
     )
     if not args.text_vocab_path:
         ds.export_text_vocab(str(out_dir / "text_vocab.json"))

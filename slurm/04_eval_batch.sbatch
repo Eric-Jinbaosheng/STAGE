@@ -23,6 +23,8 @@ DATASET_FILTER="${DATASET_FILTER:-libero}"
 MAX_SAMPLES="${MAX_SAMPLES:-512}"
 BATCH_SIZE="${BATCH_SIZE:-32}"
 OUT_PATH="${OUT_PATH:-artifacts/batch_eval/result.json}"
+SPLIT_PATH="${SPLIT_PATH:-}"
+SPLIT_NAME="${SPLIT_NAME:-}"
 
 cd "$WORKDIR"
 if command -v module >/dev/null 2>&1; then
@@ -53,6 +55,9 @@ if [[ -n "$INDEX_PATH" ]]; then
 fi
 if [[ -n "$LABELS_PATH" ]]; then
   CMD+=(--labels "$LABELS_PATH")
+fi
+if [[ -n "$SPLIT_PATH" && -n "$SPLIT_NAME" ]]; then
+  CMD+=(--split-path "$SPLIT_PATH" --split "$SPLIT_NAME")
 fi
 
 printf 'Running command:\n%s\n' "${CMD[*]}"

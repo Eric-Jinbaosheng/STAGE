@@ -27,6 +27,8 @@ TEXT_MAX_LEN="${TEXT_MAX_LEN:-16}"
 TEXT_VOCAB_PATH="${TEXT_VOCAB_PATH:-}"
 TEXT_EMBED_DIM="${TEXT_EMBED_DIM:-64}"
 TEXT_HIDDEN_DIM="${TEXT_HIDDEN_DIM:-64}"
+SPLIT_PATH="${SPLIT_PATH:-}"
+SPLIT_NAME="${SPLIT_NAME:-}"
 STEPS="${STEPS:-2000}"
 BATCH_SIZE="${BATCH_SIZE:-64}"
 LR="${LR:-1e-3}"
@@ -70,6 +72,9 @@ fi
 
 if [[ -n "$TEXT_VOCAB_PATH" ]]; then
   CMD+=(--text-vocab-path "$TEXT_VOCAB_PATH")
+fi
+if [[ -n "$SPLIT_PATH" && -n "$SPLIT_NAME" ]]; then
+  CMD+=(--split-path "$SPLIT_PATH" --split "$SPLIT_NAME")
 fi
 
 printf 'Running command:\n%s\n' "${CMD[*]}"

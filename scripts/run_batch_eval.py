@@ -11,6 +11,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--index", default="", help="Optional override for index parquet")
     p.add_argument("--labels", default="", help="Optional override for labels parquet")
     p.add_argument("--dataset", default="", help="Optional dataset filter, e.g. libero or handover_sim")
+    p.add_argument("--split-path", default="", help="Optional episode split JSON.")
+    p.add_argument("--split", default="", choices=["", "train", "val", "test"], help="Optional split name.")
     p.add_argument("--max-samples", type=int, default=128, help="Maximum number of samples to evaluate")
     p.add_argument("--batch-size", type=int, default=16, help="Batch size for evaluation")
     p.add_argument("--out", default="", help="Optional JSON output path")
@@ -73,6 +75,8 @@ def main() -> None:
         text_vocab_size=int(train_args.get("text_vocab_size", 2048)),
         text_max_len=int(train_args.get("text_max_len", 16)),
         text_vocab_path=args.text_vocab,
+        split_path=(args.split_path or None),
+        split_name=(args.split or None),
     )
 
     feature_dim = 5
@@ -203,6 +207,8 @@ def main() -> None:
             "index": index_path,
             "labels": labels_path,
             "dataset_filter": args.dataset,
+            "split_path": args.split_path,
+            "split": args.split,
             "evaluated_samples": total,
             "max_samples": int(args.max_samples),
             "batch_size": int(args.batch_size),

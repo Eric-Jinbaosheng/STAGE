@@ -2,7 +2,7 @@ import argparse
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import numpy as np
 import pandas as pd
@@ -93,6 +93,8 @@ class UnifiedSchemaDataset(TorchDataset):  # type: ignore[misc]
         text_vocab_size: int = 2048,
         text_max_len: int = 16,
         text_vocab_path: Optional[str] = None,
+        split_path: Optional[str] = None,
+        split_name: Optional[str] = None,
     ):
         self.index_df = pd.read_parquet(index_path)
         self.labels_df = pd.read_parquet(labels_path)
@@ -101,6 +103,9 @@ class UnifiedSchemaDataset(TorchDataset):  # type: ignore[misc]
             on=["dataset", "episode_id", "frame_id"],
             how="inner",
         )
+        if split_path and split_name:
+            allowed = self._load_split_episodes(split_path, split_name)
+            self.df = self.df[self.df["episode_id"].astype(str).isin(allowed)].reset_index(drop=True)
         self.object_vocab = sorted(self.df["target_object"].astype(str).unique().tolist())
         self.object_to_id = {x: i for i, x in enumerate(self.object_vocab)}
         self.phase_vocab = sorted(self.df["phase"].astype(str).unique().tolist())
@@ -120,6 +125,14 @@ class UnifiedSchemaDataset(TorchDataset):  # type: ignore[misc]
         self.pad_id = 0
         self.unk_id = 1
         self.text_vocab = self._load_or_build_text_vocab(text_vocab_path)
+
+    def _load_split_episodes(self, split_path: str, split_name: str) -> Set[str]:
+        payload = json.loads(Path(split_path).read_text(encoding="utf-8"))
+        split_map = payload.get("splits", {})
+        episodes = split_map.get(split_name, [])
+        if not isinstance(episodes, list):
+            return set()
+        return {str(x) for x in episodes}
 
     def __len__(self) -> int:
         return len(self.df)
