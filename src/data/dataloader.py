@@ -86,6 +86,7 @@ class UnifiedSchemaDataset(TorchDataset):  # type: ignore[misc]
         self,
         index_path: str,
         labels_path: str,
+        instr_wrong_path: Optional[str] = None,
         use_image: bool = False,
         image_size: int = 64,
         frame_window: int = 1,
@@ -98,11 +99,21 @@ class UnifiedSchemaDataset(TorchDataset):  # type: ignore[misc]
     ):
         self.index_df = pd.read_parquet(index_path)
         self.labels_df = pd.read_parquet(labels_path)
+        self.index_df = self.index_df.copy()
+        self.index_df["sample_id"] = (
+            self.index_df["episode_id"].astype(str) + ":" + self.index_df["frame_id"].astype(int).astype(str)
+        )
         self.df = self.index_df.merge(
             self.labels_df,
             on=["dataset", "episode_id", "frame_id"],
             how="inner",
         )
+        if instr_wrong_path:
+            instr_df = pd.read_parquet(instr_wrong_path).copy()
+            if "sample_id" not in instr_df.columns and {"episode_id", "frame_id"}.issubset(instr_df.columns):
+                instr_df["sample_id"] = instr_df["episode_id"].astype(str) + ":" + instr_df["frame_id"].astype(int).astype(str)
+            keep_cols = [c for c in ["sample_id", "instr", "instr_blank", "instr_shuffle", "instr_swap", "swap_valid", "swap_meta"] if c in instr_df.columns]
+            self.df = self.df.merge(instr_df[keep_cols], on="sample_id", how="left")
         if split_path and split_name:
             allowed = self._load_split_episodes(split_path, split_name)
             self.df = self.df[self.df["episode_id"].astype(str).isin(allowed)].reset_index(drop=True)
@@ -292,7 +303,13 @@ class UnifiedSchemaDataset(TorchDataset):  # type: ignore[misc]
             "affordance_mask": aff,
             "label_target_object": obj,
             "label_phase": phase,
+            "sample_id": str(row.get("sample_id", "")),
             "instruction": str(row.get("instruction", "")),
+            "instr_blank": str(row.get("instr_blank", "")),
+            "instr_shuffle": str(row.get("instr_shuffle", "")),
+            "instr_swap": str(row.get("instr_swap", "")),
+            "swap_valid": bool(row.get("swap_valid", False)),
+            "swap_meta": str(row.get("swap_meta", "")),
         }
         if torch is not None:
             out = {k: torch.tensor(v) if isinstance(v, np.ndarray) else v for k, v in out.items()}

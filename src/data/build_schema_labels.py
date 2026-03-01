@@ -7,25 +7,10 @@ from typing import Dict, List
 import pandas as pd
 
 from common_io import write_json, write_parquet
+from parse_instruction import DEFAULT_OBJECT_SYNONYMS
 
 
-OBJECT_VOCAB = [
-    "mug",
-    "bowl",
-    "can",
-    "bottle",
-    "box",
-    "plate",
-    "pot",
-    "stove",
-    "basket",
-    "book",
-    "drawer",
-    "spoon",
-    "block",
-    "object_0",
-    "UNK",
-]
+OBJECT_VOCAB = sorted(list(DEFAULT_OBJECT_SYNONYMS.keys()) + ["object_0", "UNK"])
 
 SCHEMA_LABEL_RULESET_VERSION = "week1_frozen_libero_phase_v2"
 TARGET_OBJECT_RULESET_VERSION = "week1_frozen_target_object_v2"
@@ -305,7 +290,7 @@ def main() -> None:
 
     out_path = Path(args.out)
     write_parquet(rows, out_path)
-    write_json(Path(args.vocab_out), {"object_vocab": OBJECT_VOCAB})
+    write_json(Path(args.vocab_out), {"object_vocab": {**DEFAULT_OBJECT_SYNONYMS, "object_0": ["object_0"], "UNK": ["UNK"]}})
 
     meta_patch = {
         "schema_labels_rows": len(rows),
