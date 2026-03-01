@@ -226,6 +226,8 @@ def phase_libero(
 
 def build_from_handover(df: pd.DataFrame) -> List[Dict]:
     rows: List[Dict] = []
+    if df.empty or "episode_id" not in df.columns or "frame_id" not in df.columns:
+        return rows
     for _, r in df.iterrows():
         contact = tri(float(r.get("contact_flag", 0.0)))
         secured = tri(1.0 - float(r.get("gripper_width", 1.0)))
@@ -249,6 +251,8 @@ def build_from_handover(df: pd.DataFrame) -> List[Dict]:
 
 def build_from_libero(df: pd.DataFrame) -> List[Dict]:
     rows: List[Dict] = []
+    if df.empty or "episode_id" not in df.columns or "frame_id" not in df.columns:
+        return rows
     grp_max = df.groupby("episode_id")["frame_id"].max().to_dict() if len(df) else {}
     for ep, sub in df.groupby("episode_id", sort=False):
         sub = sub.sort_values("frame_id")
