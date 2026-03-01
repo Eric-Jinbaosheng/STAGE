@@ -131,21 +131,24 @@ def main() -> None:
         hi = pd.read_parquet(args.handover_index)
         lines.append("")
         lines.append(f"- Handover rows: {len(hi)}")
-        episodes = hi["episode_id"].drop_duplicates().tolist()
-        random.seed(7)
-        sampled = episodes[:10] if len(episodes) <= 10 else random.sample(episodes, 10)
-        lines.append(f"- Handover sampled episodes: {len(sampled)}")
-        for ep in sampled[:3]:
-            sub = hi[hi["episode_id"] == ep].sort_values("frame_id")
-            x = sub["frame_id"].astype(float).tolist()
-            ys = {
-                "d_grip_obj": sub["d_grip_obj"].astype(float).tolist(),
-                "contact_flag": sub["contact_flag"].astype(float).tolist(),
-                "gripper_width": sub["gripper_width"].astype(float).tolist(),
-            }
-            p = out_dir / f"handover_curve_{ep}.svg"
-            _to_svg(x, ys, p, f"Handover sanity: {ep}")
-            lines.append(f"  - `{ep}` curve: `{p.as_posix()}`")
+        if len(hi) > 0 and "episode_id" in hi.columns:
+            episodes = hi["episode_id"].drop_duplicates().tolist()
+            random.seed(7)
+            sampled = episodes[:10] if len(episodes) <= 10 else random.sample(episodes, 10)
+            lines.append(f"- Handover sampled episodes: {len(sampled)}")
+            for ep in sampled[:3]:
+                sub = hi[hi["episode_id"] == ep].sort_values("frame_id")
+                x = sub["frame_id"].astype(float).tolist()
+                ys = {
+                    "d_grip_obj": sub["d_grip_obj"].astype(float).tolist(),
+                    "contact_flag": sub["contact_flag"].astype(float).tolist(),
+                    "gripper_width": sub["gripper_width"].astype(float).tolist(),
+                }
+                p = out_dir / f"handover_curve_{ep}.svg"
+                _to_svg(x, ys, p, f"Handover sanity: {ep}")
+                lines.append(f"  - `{ep}` curve: `{p.as_posix()}`")
+        else:
+            lines.append("- Handover index is empty.")
     else:
         lines.append("")
         lines.append("- Handover index missing.")
