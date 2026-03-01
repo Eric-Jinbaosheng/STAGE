@@ -22,7 +22,7 @@ CONDA_ENVS_PATH="${CONDA_ENVS_PATH:-$CONDA_SCRATCH_ROOT/envs}"
 PIP_CACHE_DIR="${PIP_CACHE_DIR:-/scratch/$USER/pip-cache}"
 TMPDIR="${TMPDIR:-/scratch/$USER/tmp}"
 TORCH_INDEX_URL="${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cu121}"
-INSTALL_EXTRA_SIM_DEPS="${INSTALL_EXTRA_SIM_DEPS:-0}"
+INSTALL_EXTRA_SIM_DEPS="${INSTALL_EXTRA_SIM_DEPS:-1}"
 
 cd "$WORKDIR"
 
@@ -63,7 +63,9 @@ python -m pip install numpy pandas pyarrow h5py requests tqdm huggingface_hub
 python -m pip install torch==2.5.1 torchvision==0.20.1 --index-url "$TORCH_INDEX_URL"
 
 if [[ "$INSTALL_EXTRA_SIM_DEPS" == "1" ]]; then
-  python -m pip install gymnasium robosuite
+  python -m pip install gymnasium
+  python -m pip install termcolor psutil tensorboard tensorboardX imageio imageio-ffmpeg matplotlib
+  python -m pip install robomimic --no-deps
 fi
 
 python - <<'PY'

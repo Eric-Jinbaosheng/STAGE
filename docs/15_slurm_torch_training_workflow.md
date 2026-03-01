@@ -47,7 +47,6 @@ This creates a conda environment on scratch and installs:
 By default it does not install:
 
 - `torchaudio`
-- `gymnasium`
 - `robosuite`
 
 If you want the extra simulation dependencies too:
@@ -56,12 +55,27 @@ If you want the extra simulation dependencies too:
 sbatch --export=ALL,INSTALL_EXTRA_SIM_DEPS=1 slurm/00_setup_env.sbatch
 ```
 
+Current default is already `INSTALL_EXTRA_SIM_DEPS=1`, which installs the lighter LIBERO data-pull stack:
+
+- `gymnasium`
+- `termcolor`
+- `psutil`
+- `tensorboard`
+- `tensorboardX`
+- `imageio`
+- `imageio-ffmpeg`
+- `matplotlib`
+- `robomimic --no-deps`
+
+This avoids the heavier `egl_probe` build path while still allowing `third_party/LIBERO/libero/lifelong/datasets.py` to run.
+
 This script is already adapted for the current `torch` cluster behavior:
 
 - uses `anaconda3/2025.06`
 - forces Python 3.11 inside the conda env
 - moves conda and pip writes to `/scratch`
 - avoids the home-directory quota issue
+- leaves the `ROBOMIMIC WARNING: No private macro file found!` warning untouched because it is non-fatal for dataset download
 
 ## 2. Pull Data
 
