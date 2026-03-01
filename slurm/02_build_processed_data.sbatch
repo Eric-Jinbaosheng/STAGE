@@ -23,30 +23,33 @@ if command -v module >/dev/null 2>&1; then
   fi
 fi
 export PYTHONNOUSERSITE=1
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate "$CONDA_ENV_DIR"
+PYTHON_BIN="${CONDA_ENV_DIR}/bin/python"
+if [[ ! -x "$PYTHON_BIN" ]]; then
+  echo "Python not found at $PYTHON_BIN"
+  exit 1
+fi
 
 mkdir -p data/processed
 
-python src/data/build_index_libero.py \
+"$PYTHON_BIN" src/data/build_index_libero.py \
   --raw-dir data/libero_raw \
   --out data/processed/libero_index.parquet \
   --meta-out data/processed/meta.json \
   --datasets "$LIBERO_DATASETS"
 
-python src/data/build_index_handover.py \
+"$PYTHON_BIN" src/data/build_index_handover.py \
   --raw-dir data/raw/handoversim \
   --out data/processed/handover_index.parquet \
   --meta-out data/processed/meta.json
 
-python src/data/build_schema_labels.py \
+"$PYTHON_BIN" src/data/build_schema_labels.py \
   --libero-index data/processed/libero_index.parquet \
   --handover-index data/processed/handover_index.parquet \
   --out data/processed/schema_labels.parquet \
   --meta-out data/processed/meta.json \
   --vocab-out data/processed/object_vocab.json
 
-python - <<'PY'
+"$PYTHON_BIN" - <<'PY'
 import json
 import pandas as pd
 print("libero_index", pd.read_parquet("data/processed/libero_index.parquet").shape)

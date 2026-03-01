@@ -24,8 +24,11 @@ if command -v module >/dev/null 2>&1; then
   fi
 fi
 export PYTHONNOUSERSITE=1
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate "$CONDA_ENV_DIR"
+PYTHON_BIN="${CONDA_ENV_DIR}/bin/python"
+if [[ ! -x "$PYTHON_BIN" ]]; then
+  echo "Python not found at $PYTHON_BIN"
+  exit 1
+fi
 
 mkdir -p third_party data/libero_raw data/raw/handoversim .libero
 
@@ -42,15 +45,15 @@ datasets: ${WORKDIR}/data/libero_raw
 assets: ${WORKDIR}/third_party/LIBERO/libero/libero/assets
 EOF
 
-  python third_party/LIBERO/libero/lifelong/datasets.py --download-libero_spatial
-  python third_party/LIBERO/libero/lifelong/datasets.py --download-libero_object
-  python third_party/LIBERO/libero/lifelong/datasets.py --download-libero_goal
+  "$PYTHON_BIN" third_party/LIBERO/libero/lifelong/datasets.py --download-libero_spatial
+  "$PYTHON_BIN" third_party/LIBERO/libero/lifelong/datasets.py --download-libero_object
+  "$PYTHON_BIN" third_party/LIBERO/libero/lifelong/datasets.py --download-libero_goal
 else
   echo "Skipping LIBERO download because DOWNLOAD_LIBERO=$DOWNLOAD_LIBERO"
 fi
 
 if [[ -n "$DEXYCB_CACHE_DIR" && -d "$DEXYCB_CACHE_DIR" ]]; then
-  python scripts/export_raw_from_dexycb_cache.py \
+  "$PYTHON_BIN" scripts/export_raw_from_dexycb_cache.py \
     --cache-dir "$DEXYCB_CACHE_DIR" \
     --out-dir data/raw/handoversim \
     --num-episodes 10 \

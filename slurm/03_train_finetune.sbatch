@@ -40,11 +40,14 @@ if command -v module >/dev/null 2>&1; then
   fi
 fi
 export PYTHONNOUSERSITE=1
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate "$CONDA_ENV_DIR"
+PYTHON_BIN="${CONDA_ENV_DIR}/bin/python"
+if [[ ! -x "$PYTHON_BIN" ]]; then
+  echo "Python not found at $PYTHON_BIN"
+  exit 1
+fi
 
 CMD=(
-  python scripts/train_finetune_baseline.py
+  "$PYTHON_BIN" scripts/train_finetune_baseline.py
   --index "$INDEX_PATH"
   --labels "$LABELS_PATH"
   --out-dir "$OUT_DIR"
