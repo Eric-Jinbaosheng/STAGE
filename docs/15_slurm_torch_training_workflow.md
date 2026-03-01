@@ -85,6 +85,8 @@ Submit:
 sbatch slurm/01_pull_data.sbatch
 ```
 
+This script now activates the same conda environment created by `slurm/00_setup_env.sbatch`.
+
 If you already copied raw LIBERO and handover files onto the cluster, disable downloading:
 
 ```bash
@@ -116,6 +118,8 @@ Submit:
 sbatch slurm/02_build_processed_data.sbatch
 ```
 
+This script now activates the same conda environment created by `slurm/00_setup_env.sbatch`.
+
 This rebuilds:
 
 - `data/processed/libero_index.parquet`
@@ -131,6 +135,10 @@ Submit:
 ```bash
 sbatch slurm/03_train_finetune.sbatch
 ```
+
+Current default GPU partition is:
+
+- `l40s_public`
 
 Typical override:
 
@@ -198,8 +206,8 @@ Run in this order:
 
 ## Important Cluster Assumptions
 
-- These scripts assume your SLURM cluster accepts `--partition=cpu` and `--partition=gpu`
-- If your cluster uses different partition names, edit the `#SBATCH` lines
+- The GPU scripts currently default to `--partition=l40s_public`
+- If your cluster uses a different partition name, edit the `#SBATCH` lines
 - If your cluster requires `--account`, add it to the `#SBATCH` lines
 - If your cluster manages modules differently, adjust:
   - `PYTHON_MODULE`

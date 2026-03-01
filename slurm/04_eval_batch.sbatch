@@ -5,6 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
+#SBATCH --partition=l40s_public
 #SBATCH --gres=gpu:1
 #SBATCH --time=02:00:00
 #SBATCH --output=slurm-%x-%j.out
@@ -12,7 +13,8 @@
 set -euo pipefail
 
 WORKDIR="${WORKDIR:-$SLURM_SUBMIT_DIR}"
-VENV_DIR="${VENV_DIR:-$WORKDIR/.venv_torch}"
+PYTHON_MODULE="${PYTHON_MODULE:-anaconda3/2025.06}"
+CONDA_ENV_DIR="${CONDA_ENV_DIR:-$WORKDIR/.conda_torch}"
 CHECKPOINT="${CHECKPOINT:-artifacts/finetune_baseline/checkpoint.pt}"
 TEXT_VOCAB="${TEXT_VOCAB:-artifacts/finetune_baseline/text_vocab.json}"
 INDEX_PATH="${INDEX_PATH:-}"
@@ -23,7 +25,15 @@ BATCH_SIZE="${BATCH_SIZE:-32}"
 OUT_PATH="${OUT_PATH:-artifacts/batch_eval/result.json}"
 
 cd "$WORKDIR"
-source "$VENV_DIR/bin/activate"
+if command -v module >/dev/null 2>&1; then
+  module purge || true
+  if [[ -n "$PYTHON_MODULE" ]]; then
+    module load "$PYTHON_MODULE"
+  fi
+fi
+export PYTHONNOUSERSITE=1
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate "$CONDA_ENV_DIR"
 
 CMD=(
   python scripts/run_batch_eval.py

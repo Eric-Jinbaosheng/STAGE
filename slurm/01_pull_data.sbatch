@@ -11,12 +11,21 @@
 set -euo pipefail
 
 WORKDIR="${WORKDIR:-$SLURM_SUBMIT_DIR}"
-VENV_DIR="${VENV_DIR:-$WORKDIR/.venv_torch}"
+PYTHON_MODULE="${PYTHON_MODULE:-anaconda3/2025.06}"
+CONDA_ENV_DIR="${CONDA_ENV_DIR:-$WORKDIR/.conda_torch}"
 DOWNLOAD_LIBERO="${DOWNLOAD_LIBERO:-1}"
 DEXYCB_CACHE_DIR="${DEXYCB_CACHE_DIR:-}"
 
 cd "$WORKDIR"
-source "$VENV_DIR/bin/activate"
+if command -v module >/dev/null 2>&1; then
+  module purge || true
+  if [[ -n "$PYTHON_MODULE" ]]; then
+    module load "$PYTHON_MODULE"
+  fi
+fi
+export PYTHONNOUSERSITE=1
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate "$CONDA_ENV_DIR"
 
 mkdir -p third_party data/libero_raw data/raw/handoversim .libero
 

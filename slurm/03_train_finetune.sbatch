@@ -5,6 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
+#SBATCH --partition=l40s_public
 #SBATCH --gres=gpu:1
 #SBATCH --time=24:00:00
 #SBATCH --output=slurm-%x-%j.out
@@ -12,7 +13,8 @@
 set -euo pipefail
 
 WORKDIR="${WORKDIR:-$SLURM_SUBMIT_DIR}"
-VENV_DIR="${VENV_DIR:-$WORKDIR/.venv_torch}"
+PYTHON_MODULE="${PYTHON_MODULE:-anaconda3/2025.06}"
+CONDA_ENV_DIR="${CONDA_ENV_DIR:-$WORKDIR/.conda_torch}"
 OUT_DIR="${OUT_DIR:-artifacts/finetune_baseline}"
 INDEX_PATH="${INDEX_PATH:-data/processed/libero_index.parquet}"
 LABELS_PATH="${LABELS_PATH:-data/processed/schema_labels.parquet}"
@@ -31,7 +33,15 @@ LR="${LR:-1e-3}"
 TASK="${TASK:-multi}"
 
 cd "$WORKDIR"
-source "$VENV_DIR/bin/activate"
+if command -v module >/dev/null 2>&1; then
+  module purge || true
+  if [[ -n "$PYTHON_MODULE" ]]; then
+    module load "$PYTHON_MODULE"
+  fi
+fi
+export PYTHONNOUSERSITE=1
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate "$CONDA_ENV_DIR"
 
 CMD=(
   python scripts/train_finetune_baseline.py

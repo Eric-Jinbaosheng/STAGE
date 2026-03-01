@@ -5,14 +5,15 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=16G
+#SBATCH --partition=l40s_public
 #SBATCH --gres=gpu:1
 #SBATCH --time=00:30:00
 #SBATCH --output=slurm-%x-%j.out
 
 set -euo pipefail
-
 WORKDIR="${WORKDIR:-$SLURM_SUBMIT_DIR}"
-VENV_DIR="${VENV_DIR:-$WORKDIR/.venv_torch}"
+PYTHON_MODULE="${PYTHON_MODULE:-anaconda3/2025.06}"
+CONDA_ENV_DIR="${CONDA_ENV_DIR:-$WORKDIR/.conda_torch}"
 CHECKPOINT="${CHECKPOINT:-artifacts/finetune_baseline/checkpoint.pt}"
 TEXT_VOCAB="${TEXT_VOCAB:-artifacts/finetune_baseline/text_vocab.json}"
 EPISODE_ID="${EPISODE_ID:-open_the_middle_drawer_of_the_cabinet_demo:demo_0}"
@@ -22,7 +23,15 @@ INDEX_PATH="${INDEX_PATH:-}"
 LABELS_PATH="${LABELS_PATH:-}"
 
 cd "$WORKDIR"
-source "$VENV_DIR/bin/activate"
+if command -v module >/dev/null 2>&1; then
+  module purge || true
+  if [[ -n "$PYTHON_MODULE" ]]; then
+    module load "$PYTHON_MODULE"
+  fi
+fi
+export PYTHONNOUSERSITE=1
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate "$CONDA_ENV_DIR"
 
 CMD=(
   python scripts/run_single_inference.py
