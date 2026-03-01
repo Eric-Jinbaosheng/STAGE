@@ -37,17 +37,22 @@ if [[ "$DOWNLOAD_LIBERO" == "1" ]]; then
     git clone https://github.com/Lifelong-Robot-Learning/LIBERO.git third_party/LIBERO
   fi
 
-  cat > .libero/config.yaml <<EOF
-benchmark_root: ${WORKDIR}/data/libero_raw
-bddl_files: ${WORKDIR}/third_party/LIBERO/libero/libero/bddl_files
-init_states: ${WORKDIR}/third_party/LIBERO/libero/libero/init_files
-datasets: ${WORKDIR}/data/libero_raw
-assets: ${WORKDIR}/third_party/LIBERO/libero/libero/assets
-EOF
+  pushd third_party/LIBERO >/dev/null
+  "$PYTHON_BIN" benchmark_scripts/download_libero_datasets.py --datasets libero_spatial
+  "$PYTHON_BIN" benchmark_scripts/download_libero_datasets.py --datasets libero_object
+  "$PYTHON_BIN" benchmark_scripts/download_libero_datasets.py --datasets libero_goal
+  popd >/dev/null
 
-  "$PYTHON_BIN" third_party/LIBERO/libero/lifelong/datasets.py --download-libero_spatial
-  "$PYTHON_BIN" third_party/LIBERO/libero/lifelong/datasets.py --download-libero_object
-  "$PYTHON_BIN" third_party/LIBERO/libero/lifelong/datasets.py --download-libero_goal
+  if [[ -d third_party/LIBERO/datasets ]]; then
+    mkdir -p data/libero_raw
+    cp -r third_party/LIBERO/datasets/. data/libero_raw/
+  elif [[ -d third_party/LIBERO/libero/datasets ]]; then
+    mkdir -p data/libero_raw
+    cp -r third_party/LIBERO/libero/datasets/. data/libero_raw/
+  fi
+
+  echo "LIBERO files under data/libero_raw:"
+  find data/libero_raw -type f | head -20 || true
 else
   echo "Skipping LIBERO download because DOWNLOAD_LIBERO=$DOWNLOAD_LIBERO"
 fi
