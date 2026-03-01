@@ -97,6 +97,8 @@ class UnifiedSchemaDataset(TorchDataset):  # type: ignore[misc]
         split_path: Optional[str] = None,
         split_name: Optional[str] = None,
     ):
+        self._h5_cache: Dict[str, object] = {}
+        self._dataset_len_cache: Dict[Tuple[str, str], int] = {}
         self.index_df = pd.read_parquet(index_path)
         self.labels_df = pd.read_parquet(labels_path)
         self.index_df = self.index_df.copy()
@@ -130,9 +132,6 @@ class UnifiedSchemaDataset(TorchDataset):  # type: ignore[misc]
         self.view_names = [x for x in (view_names or ["agentview_rgb"]) if x]
         if not self.view_names:
             self.view_names = ["agentview_rgb"]
-
-        self._h5_cache: Dict[str, object] = {}
-        self._dataset_len_cache: Dict[Tuple[str, str], int] = {}
         self.pad_id = 0
         self.unk_id = 1
         self.text_vocab = self._load_or_build_text_vocab(text_vocab_path)
@@ -318,7 +317,7 @@ class UnifiedSchemaDataset(TorchDataset):  # type: ignore[misc]
         return out
 
     def close(self) -> None:
-        for handle in self._h5_cache.values():
+        for handle in getattr(self, "_h5_cache", {}).values():
             try:
                 handle.close()
             except Exception:
