@@ -29,6 +29,7 @@ if [[ ! -x "$PYTHON_BIN" ]]; then
   echo "Python not found at $PYTHON_BIN"
   exit 1
 fi
+export LIBERO_CONFIG_PATH="${WORKDIR}/.libero"
 
 mkdir -p third_party data/libero_raw data/raw/handoversim .libero
 
@@ -37,19 +38,19 @@ if [[ "$DOWNLOAD_LIBERO" == "1" ]]; then
     git clone https://github.com/Lifelong-Robot-Learning/LIBERO.git third_party/LIBERO
   fi
 
-  pushd third_party/LIBERO >/dev/null
-  "$PYTHON_BIN" benchmark_scripts/download_libero_datasets.py --datasets libero_spatial
-  "$PYTHON_BIN" benchmark_scripts/download_libero_datasets.py --datasets libero_object
-  "$PYTHON_BIN" benchmark_scripts/download_libero_datasets.py --datasets libero_goal
-  popd >/dev/null
+  cat > .libero/config.yaml <<EOF
+benchmark_root: ${WORKDIR}/third_party/LIBERO/libero/libero
+bddl_files: ${WORKDIR}/third_party/LIBERO/libero/libero/bddl_files
+init_states: ${WORKDIR}/third_party/LIBERO/libero/libero/init_files
+datasets: ${WORKDIR}/data/libero_raw
+assets: ${WORKDIR}/third_party/LIBERO/libero/libero/assets
+EOF
 
-  if [[ -d third_party/LIBERO/datasets ]]; then
-    mkdir -p data/libero_raw
-    cp -r third_party/LIBERO/datasets/. data/libero_raw/
-  elif [[ -d third_party/LIBERO/libero/datasets ]]; then
-    mkdir -p data/libero_raw
-    cp -r third_party/LIBERO/libero/datasets/. data/libero_raw/
-  fi
+  pushd third_party/LIBERO >/dev/null
+  "$PYTHON_BIN" benchmark_scripts/download_libero_datasets.py --download-dir "${WORKDIR}/data/libero_raw" --datasets libero_spatial --use-huggingface
+  "$PYTHON_BIN" benchmark_scripts/download_libero_datasets.py --download-dir "${WORKDIR}/data/libero_raw" --datasets libero_object --use-huggingface
+  "$PYTHON_BIN" benchmark_scripts/download_libero_datasets.py --download-dir "${WORKDIR}/data/libero_raw" --datasets libero_goal --use-huggingface
+  popd >/dev/null
 
   echo "LIBERO files under data/libero_raw:"
   find data/libero_raw -type f | head -20 || true
