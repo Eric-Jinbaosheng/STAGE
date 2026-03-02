@@ -51,6 +51,18 @@ TARGET_FALLBACK_KEYWORDS = [
 ]
 
 
+TARGET_CANONICAL_MAP = {
+    "cabinet": "drawer",
+}
+
+
+PHASE_CANONICAL_MAP = {
+    "interact": "manipulate",
+    "open": "manipulate",
+    "close": "place",
+}
+
+
 def parse_affordance_mask(raw: str) -> Dict[str, int]:
     try:
         payload = json.loads(raw)
@@ -76,6 +88,20 @@ def normalize_tri_value(value: str) -> str:
     if v in ("FALSE", "0"):
         return "F"
     return "UNK"
+
+
+def normalize_target_value(value: str) -> str:
+    v = str(value or "UNK").strip().lower()
+    if not v:
+        return "UNK"
+    return TARGET_CANONICAL_MAP.get(v, v)
+
+
+def normalize_phase_value(value: str) -> str:
+    v = str(value or "UNK").strip().lower()
+    if not v:
+        return "UNK"
+    return PHASE_CANONICAL_MAP.get(v, v)
 
 
 def row_to_schema_fields(row: Dict) -> Dict[str, str]:
@@ -113,8 +139,8 @@ def parse_schema_text(text: str) -> Dict[str, object]:
         key, value = line.split("=", 1)
         raw_map[key.strip().upper()] = value.strip()
 
-    parsed["TARGET"] = raw_map.get("TARGET", "UNK")
-    parsed["PHASE"] = raw_map.get("PHASE", "UNK")
+    parsed["TARGET"] = normalize_target_value(raw_map.get("TARGET", "UNK"))
+    parsed["PHASE"] = normalize_phase_value(raw_map.get("PHASE", "UNK"))
     for out_key, _ in TRI_VALUE_FIELDS:
         parsed[out_key] = normalize_tri_value(raw_map.get(out_key, "UNK"))
 
@@ -138,23 +164,23 @@ def parse_schema_text(text: str) -> Dict[str, object]:
         object_text = object_match.group(1).lower() if object_match else lowered
         for keyword in TARGET_FALLBACK_KEYWORDS:
             if keyword in object_text:
-                parsed["TARGET"] = keyword
+                parsed["TARGET"] = normalize_target_value(keyword)
                 break
         if str(parsed["TARGET"]).upper() == "UNK":
             for keyword in TARGET_FALLBACK_KEYWORDS:
                 if keyword in lowered:
-                    parsed["TARGET"] = keyword
+                    parsed["TARGET"] = normalize_target_value(keyword)
                     break
 
     if str(parsed["PHASE"]).upper() == "UNK":
         if "open" in lowered or "turn on" in lowered or "_open_" in lowered or lowered.startswith("open_"):
-            parsed["PHASE"] = "manipulate"
+            parsed["PHASE"] = normalize_phase_value("manipulate")
         elif "grasp" in lowered or "pick up" in lowered:
-            parsed["PHASE"] = "grasp"
+            parsed["PHASE"] = normalize_phase_value("grasp")
         elif "place" in lowered or "put " in lowered:
-            parsed["PHASE"] = "place"
+            parsed["PHASE"] = normalize_phase_value("place")
         elif "reach" in lowered:
-            parsed["PHASE"] = "reach"
+            parsed["PHASE"] = normalize_phase_value("reach")
 
     return parsed
 

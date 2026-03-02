@@ -237,9 +237,13 @@ if __name__ == "__main__":
                     "instr_swap": sample.get("instr_swap", ""),
                     "swap_valid": bool(sample.get("swap_valid", False)),
                     "gt_schema_text": sample["target_schema_text"],
+                    "gt_target": gt.get("TARGET", "UNK"),
+                    "gt_phase": gt.get("PHASE", "UNK"),
                     "pred_schema_text": pred_text,
                     "pred_schema_text_raw": pred_out.get("raw_text", ""),
                     "pred_token_ids": pred_out.get("token_ids", []),
+                    "pred_target": pred.get("TARGET", "UNK"),
+                    "pred_phase": pred.get("PHASE", "UNK"),
                     "pred_target_blank": pred_blank_target,
                     "pred_target_swap": pred_swap_target,
                 }
