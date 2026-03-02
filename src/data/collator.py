@@ -31,16 +31,18 @@ class SchemaTextSFTCollator:
     max_length: int = 512
     add_generation_prompt: bool = False
 
-    def _tokenize_text(self, texts: List[str]):
-        tokenizer = getattr(self.processor, "tokenizer", self.processor)
-        return tokenizer(
-            texts,
+    def _prompt_length(self, prompt_text: str, image: Any) -> int:
+        prompt_inputs = self.processor(
+            text=[prompt_text],
+            images=[image],
             return_tensors="pt",
-            padding=True,
+            padding=False,
             truncation=True,
             max_length=self.max_length,
-            add_special_tokens=True,
         )
+        if "attention_mask" in prompt_inputs:
+            return int(prompt_inputs["attention_mask"][0].sum().item())
+        return int(prompt_inputs["input_ids"].shape[1])
 
     def __call__(self, batch: List[Dict[str, Any]]) -> Dict[str, Any]:
         prompts = [
@@ -65,9 +67,8 @@ class SchemaTextSFTCollator:
         )
 
         labels = model_inputs["input_ids"].clone()
-        prompt_tokens = self._tokenize_text(prompts)
-        prompt_lens = prompt_tokens["attention_mask"].sum(dim=1).tolist()
-        for i, plen in enumerate(prompt_lens):
+        for i, (prompt_text, image) in enumerate(zip(prompts, images)):
+            plen = self._prompt_length(prompt_text, image)
             plen = int(plen)
             labels[i, :plen] = -100
         if "attention_mask" in model_inputs:
