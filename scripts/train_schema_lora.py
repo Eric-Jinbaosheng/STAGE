@@ -74,6 +74,16 @@ def to_device(batch: dict, device: torch.device) -> dict:
     return out
 
 
+def build_model_kwargs(batch: dict) -> dict:
+    kwargs = {"labels": batch["labels"]}
+    for key, value in batch.items():
+        if key == "labels":
+            continue
+        if torch.is_tensor(value):
+            kwargs[key] = value
+    return kwargs
+
+
 def linear_warmup_decay(step: int, max_steps: int, warmup_steps: int) -> float:
     if step < warmup_steps:
         return float(step + 1) / float(max(1, warmup_steps))
@@ -92,12 +102,7 @@ def evaluate(model, loader, device: torch.device, max_batches: int) -> float:
         if i >= max_batches:
             break
         batch = to_device(batch, device)
-        out = model(
-            input_ids=batch["input_ids"],
-            attention_mask=batch.get("attention_mask"),
-            pixel_values=batch.get("pixel_values"),
-            labels=batch["labels"],
-        )
+        out = model(**build_model_kwargs(batch))
         losses.append(float(out.loss.detach().cpu()))
     model.train()
     if not losses:
@@ -251,22 +256,13 @@ if __name__ == "__main__":
     while global_step < args.max_steps:
         for batch in train_loader:
             batch = to_device(batch, device)
+            model_kwargs = build_model_kwargs(batch)
             if use_amp:
                 with torch.autocast(device_type=device.type, dtype=pick_dtype(args) or torch.float16):
-                    out = model(
-                        input_ids=batch["input_ids"],
-                        attention_mask=batch.get("attention_mask"),
-                        pixel_values=batch.get("pixel_values"),
-                        labels=batch["labels"],
-                    )
+                    out = model(**model_kwargs)
                     loss = out.loss / args.grad_accum
             else:
-                out = model(
-                    input_ids=batch["input_ids"],
-                    attention_mask=batch.get("attention_mask"),
-                    pixel_values=batch.get("pixel_values"),
-                    labels=batch["labels"],
-                )
+                out = model(**model_kwargs)
                 loss = out.loss / args.grad_accum
 
             loss.backward()
