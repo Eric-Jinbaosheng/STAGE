@@ -53,9 +53,12 @@ def generate_schema_text(model, processor, sample: dict, max_length: int, max_ne
         sample["prompt_text"],
         add_generation_prompt=True,
     )
+    image_value = sample["image"]
+    if hasattr(image_value, "numpy"):
+        image_value = image_value.numpy()
     encoded = processor(
         text=[rendered_prompt],
-        images=[sample["image"].numpy()],
+        images=[image_value],
         return_tensors="pt",
         padding=True,
         truncation=True,
