@@ -45,7 +45,7 @@ def normalize_tri(value: Any) -> str:
     return "UNK"
 
 
-def generate_schema_text(model, processor, sample: dict, max_length: int, max_new_tokens: int, device: torch.device) -> str:
+def generate_schema_text(model, processor, sample: dict, max_length: int, max_new_tokens: int, device: torch.device) -> Dict[str, object]:
     from data.collator import render_multimodal_prompt
 
     rendered_prompt = render_multimodal_prompt(
@@ -75,9 +75,16 @@ def generate_schema_text(model, processor, sample: dict, max_length: int, max_ne
         do_sample=False,
     )
     generated = out[:, prompt_len:]
-    decoded = processor.batch_decode(generated, skip_special_tokens=True)
-    text = decoded[0] if decoded else ""
-    return text.strip()
+    decoded_clean = processor.batch_decode(generated, skip_special_tokens=True)
+    decoded_raw = processor.batch_decode(generated, skip_special_tokens=False)
+    text = decoded_clean[0] if decoded_clean else ""
+    raw_text = decoded_raw[0] if decoded_raw else ""
+    token_ids = generated[0].detach().cpu().tolist() if generated.numel() else []
+    return {
+        "text": text.strip(),
+        "raw_text": raw_text,
+        "token_ids": token_ids,
+    }
 
 
 def score_aff(gt: Dict[str, int], pred: Dict[str, int]) -> Dict[str, float]:
@@ -151,7 +158,7 @@ if __name__ == "__main__":
     rows = min(len(ds), args.max_samples)
     for i in range(rows):
         sample = ds[i]
-        pred_text = generate_schema_text(
+        pred_out = generate_schema_text(
             model=model,
             processor=processor,
             sample=sample,
@@ -159,6 +166,7 @@ if __name__ == "__main__":
             max_new_tokens=args.max_new_tokens,
             device=device,
         )
+        pred_text = str(pred_out.get("text", ""))
         pred = parse_schema_text(pred_text)
         gt = parse_schema_text(sample["target_schema_text"])
 
@@ -180,7 +188,7 @@ if __name__ == "__main__":
             blank_total += 1
             blank_sample = dict(sample)
             blank_sample["prompt_text"] = sample["prompt_text"].replace(sample["instruction"], sample["instr_blank"])
-            blank_text = generate_schema_text(
+            blank_out = generate_schema_text(
                 model=model,
                 processor=processor,
                 sample=blank_sample,
@@ -188,6 +196,7 @@ if __name__ == "__main__":
                 max_new_tokens=args.max_new_tokens,
                 device=device,
             )
+            blank_text = str(blank_out.get("text", ""))
             pred_blank = parse_schema_text(blank_text)
             pred_blank_target = pred_blank.get("TARGET", "UNK")
             if pred_blank_target != pred.get("TARGET", "UNK"):
@@ -198,7 +207,7 @@ if __name__ == "__main__":
             swap_total += 1
             swap_sample = dict(sample)
             swap_sample["prompt_text"] = sample["prompt_text"].replace(sample["instruction"], sample["instr_swap"])
-            swap_text = generate_schema_text(
+            swap_out = generate_schema_text(
                 model=model,
                 processor=processor,
                 sample=swap_sample,
@@ -206,6 +215,7 @@ if __name__ == "__main__":
                 max_new_tokens=args.max_new_tokens,
                 device=device,
             )
+            swap_text = str(swap_out.get("text", ""))
             pred_swap = parse_schema_text(swap_text)
             pred_swap_target = pred_swap.get("TARGET", "UNK")
             src = gt.get("TARGET", "UNK")
@@ -228,6 +238,8 @@ if __name__ == "__main__":
                     "swap_valid": bool(sample.get("swap_valid", False)),
                     "gt_schema_text": sample["target_schema_text"],
                     "pred_schema_text": pred_text,
+                    "pred_schema_text_raw": pred_out.get("raw_text", ""),
+                    "pred_token_ids": pred_out.get("token_ids", []),
                     "pred_target_blank": pred_blank_target,
                     "pred_target_swap": pred_swap_target,
                 }
