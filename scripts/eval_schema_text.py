@@ -67,12 +67,16 @@ def generate_schema_text(model, processor, sample: dict, max_length: int, max_ne
     for key, value in list(encoded.items()):
         if torch.is_tensor(value):
             encoded[key] = value.to(device)
-    out = model.generate(**encoded, max_new_tokens=max_new_tokens)
-    decoded = processor.batch_decode(out, skip_special_tokens=True)
+    prompt_len = int(encoded["input_ids"].shape[1])
+    out = model.generate(
+        **encoded,
+        max_new_tokens=max_new_tokens,
+        min_new_tokens=min(16, max_new_tokens),
+        do_sample=False,
+    )
+    generated = out[:, prompt_len:]
+    decoded = processor.batch_decode(generated, skip_special_tokens=True)
     text = decoded[0] if decoded else ""
-    marker = "OUTPUT_SCHEMA:"
-    if marker in text:
-        text = text.split(marker, 1)[1].strip()
     return text.strip()
 
 
