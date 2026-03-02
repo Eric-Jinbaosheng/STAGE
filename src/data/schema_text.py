@@ -37,6 +37,20 @@ SCHEMA_TEMPLATE_ORDER = [
 ]
 
 
+TARGET_FALLBACK_KEYWORDS = [
+    "drawer",
+    "stove",
+    "bowl",
+    "bottle",
+    "box",
+    "can",
+    "plate",
+    "pot",
+    "mug",
+    "basket",
+]
+
+
 def parse_affordance_mask(raw: str) -> Dict[str, int]:
     try:
         payload = json.loads(raw)
@@ -89,7 +103,8 @@ def row_to_schema_text(row: Dict) -> str:
 
 
 def parse_schema_text(text: str) -> Dict[str, object]:
-    lines = [line.strip() for line in str(text).splitlines() if line.strip()]
+    full_text = str(text)
+    lines = [line.strip() for line in full_text.splitlines() if line.strip()]
     parsed: Dict[str, object] = {}
     raw_map: Dict[str, str] = {}
     for line in lines:
@@ -115,6 +130,32 @@ def parse_schema_text(text: str) -> Dict[str, object]:
         if key in aff_map:
             aff_map[key] = 1 if value.strip() in ("1", "T", "TRUE", "true") else 0
     parsed["AFF"] = aff_map
+
+    # Fallback parsing for common non-template generations observed from the VLM.
+    lowered = full_text.lower()
+    if str(parsed["TARGET"]).upper() == "UNK":
+        object_match = re.search(r"['\"]object['\"]\s*:\s*['\"]([^'\"]+)['\"]", full_text, re.IGNORECASE)
+        object_text = object_match.group(1).lower() if object_match else lowered
+        for keyword in TARGET_FALLBACK_KEYWORDS:
+            if keyword in object_text:
+                parsed["TARGET"] = keyword
+                break
+        if str(parsed["TARGET"]).upper() == "UNK":
+            for keyword in TARGET_FALLBACK_KEYWORDS:
+                if keyword in lowered:
+                    parsed["TARGET"] = keyword
+                    break
+
+    if str(parsed["PHASE"]).upper() == "UNK":
+        if "open" in lowered or "turn on" in lowered or "_open_" in lowered or lowered.startswith("open_"):
+            parsed["PHASE"] = "manipulate"
+        elif "grasp" in lowered or "pick up" in lowered:
+            parsed["PHASE"] = "grasp"
+        elif "place" in lowered or "put " in lowered:
+            parsed["PHASE"] = "place"
+        elif "reach" in lowered:
+            parsed["PHASE"] = "reach"
+
     return parsed
 
 
@@ -152,7 +193,18 @@ def dataframe_to_schema_text(df: pd.DataFrame) -> pd.DataFrame:
 def prompt_from_instruction(instruction: str) -> str:
     return (
         "You are a robot policy assistant.\n"
-        "Given the instruction and the current observation, output the interaction schema in the exact format.\n\n"
+        "Given the instruction and the current observation, output the interaction schema in the exact format.\n"
+        "Output exactly six lines.\n"
+        "Do not output JSON.\n"
+        "Do not output code.\n"
+        "Do not explain anything.\n"
+        "Use this exact field order:\n"
+        "TARGET=<...>\n"
+        "PHASE=<...>\n"
+        "SECURED=<T|F|UNK>\n"
+        "CONTACT=<T|F|UNK>\n"
+        "OCCLUDED=<T|F|UNK>\n"
+        "AFF=[HOLD=0/1,BACKOFF_SMALL=0/1,VIEWPOINT_CHANGE=0/1,REALIGN=0/1,CLOSE_GENTLE=0/1,RETRACT=0/1,PROMPT=0/1]\n\n"
         f"INSTRUCTION: {instruction}\n"
         "OUTPUT_SCHEMA:\n"
     )
