@@ -1,0 +1,12 @@
+{
+  "name": "handover_transfer_v1",
+  "instruction_template": "handover {target} to robot",
+  "target_object_index": 0,
+  "threshold_overrides": {
+    "human_ready_max_dist": 0.18,
+    "approach_keepout_dist": 0.16,
+    "pre_release_keepout_dist": 0.22,
+    "safety_hand_keepout_dist": 0.14,
+    "near_thresh": 0.2
+  }
+}
