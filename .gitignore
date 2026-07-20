@@ -1,5 +1,13 @@
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.DS_Store
 artifacts/
 reports/
 third_party/
@@ -15,3 +23,21 @@ data/processed/
 data/unified/
 data/ood/
 data/ood_suite/
+
+# Local runtime/session files
+.codex
+.agents
+.conda_torch/
+.conda_octo/
+.venv_torch/
+.venv/
+.env
+.libero_rollout/
+.libero_rollout_test/
+.libero_config/
+outputs/
+slurm-*.out
+slurm-nlpfp_*.out
+.conda_vlm/
+
+.hf_modules_cache/

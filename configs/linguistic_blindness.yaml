@@ -1,0 +1,24 @@
+# Offline EMNLP-style linguistic blindness evaluation config.
+# Scripts expose CLI flags; this file is saved as a reproducibility snapshot.
+seed: 7
+benchmark:
+  index: data/processed/unified_index.parquet
+  labels: data/processed/schema_labels.parquet
+  instr_wrong: data/processed/instr_wrong.parquet
+  split_path: data/processed/episode_splits.json
+  split: val
+  max_observations: 1000
+  out_dir: outputs/linguistic_blindness/benchmark
+methods:
+  - direct_vlm_action
+  - direct_vlm_schema
+  - prompted_vlm_schema
+  - structured_parser
+  - parser_checker
+  - parser_checker_gate
+  - blind_structured_parser
+evaluation:
+  confidence_threshold: 0.0
+  output_root: outputs/linguistic_blindness/eval
+safe_actions: [ASK, PROMPT, WAIT, HOLD, ABORT, BACKOFF, TARGET_NOT_FOUND]
+task_actions: [GRASP, PICK, PLACE, RETRACT, MOVE_TO, OPEN, CLOSE, TRANSFER]

@@ -1,2 +1,0 @@
-"""Schema checking package."""
-

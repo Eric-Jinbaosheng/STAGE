@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+title: "STAGE: Semantic Transfer and Grounding Evaluation"
+message: "If you use this repository, please cite the associated EMNLP paper."
+type: software
+authors:
+  - name: "STAGE authors"
+repository-code: "https://github.com/Eric-Jinbaosheng/STAGE"
+license: MIT
+version: "0.1.0"
